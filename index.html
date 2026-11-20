@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e1f6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="客户生日簿">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%234a36b0%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2232%22%20width%3D%2236%22%20height%3D%2218%22%20rx%3D%224%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M14%2038q0-6%206-6h24q6%200%206%206v2q-3%203-6%200q-3%203-6%200q-3%203-6%200q-3%203-6%200q-3%203-6%200q-3%203-6%200z%22%20fill%3D%22%23ff6f8a%22%2F%3E%3Crect%20x%3D%2230%22%20y%3D%2218%22%20width%3D%224%22%20height%3D%2214%22%20rx%3D%221.5%22%20fill%3D%22%23ffd166%22%2F%3E%3Cpath%20d%3D%22M32%2016c-3-3%200-7%200-8%202%202%203%206%200%208z%22%20fill%3D%22%23ffd166%22%2F%3E%3C%2Fsvg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<title>客户生日簿</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Great+Vibes&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Layout: "party planner" — sunset hero with floating balloons and one big Send button; swipeable celebrant cards that show
+   the real birthday card; a day-by-day timeline; a 12-month grid. Sending happens in a 3-step sheet that walks customer to customer. */
+:root{
+  --bg:#f6f4fb; --surface:#ffffff; --surface2:#f1edf8; --ink:#24163a; --muted:#6e6482; --line:#e6e0ef;
+  --coral:#ff4d6d; --orange:#ff8e53; --gold:#ffb703; --teal:#06b6a4; --sky:#3a86ff; --grape:#8a5cf6; --wa:#1fae5b;
+  --coral-soft:#ffe6eb; --gold-soft:#fff3d1; --teal-soft:#dcf7f3; --sky-soft:#e4eeff; --grape-soft:#efe8ff;
+  --hero:linear-gradient(140deg,#2e1f6b 0%,#4a36b0 60%,#6a4fe0 100%);
+  /* one colour per meaning: reminder = indigo hero, today = rose, 1–3 days = amber, 4–14 days = blue, missed = slate, sent = green */
+  --k-today:#e23d5b; --k-today-soft:#ffe8ed; --k-soon:#c97a00; --k-soon-soft:#fff2d6; --k-future:#2b6be0; --k-future-soft:#e5eeff;
+  --k-late:#5f6b80; --k-late-soft:#edf0f4; --k-sent:#0d9668; --k-sent-soft:#dcf5ea; --k-month:#0b8a7d; --k-month-soft:#dcf5f1;
+  --display:"Fredoka","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --body:"Inter","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,sans-serif;
+  --shadow:0 2px 6px rgba(36,22,58,.05),0 14px 34px rgba(36,22,58,.09);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#130e1d; --surface:#1e182b; --surface2:#28213a; --ink:#f3eefb; --muted:#a99fbd; --line:#342b48;
+  --coral:#ff6b85; --orange:#ff9b68; --gold:#ffc53d; --teal:#2fd1bf; --sky:#6aa3ff; --grape:#a585ff; --wa:#2cc46b;
+  --coral-soft:#3b1a26; --gold-soft:#3a2f14; --teal-soft:#123430; --sky-soft:#1a2844; --grape-soft:#2a2045;
+  --hero:linear-gradient(140deg,#20164d 0%,#34277f 60%,#4a38a8 100%);
+  --k-today:#ff6f8a; --k-today-soft:#3b1a26; --k-soon:#fbbf3c; --k-soon-soft:#3a2c12; --k-future:#6ea4ff; --k-future-soft:#1a2844;
+  --k-late:#a7b1c2; --k-late-soft:#252c38; --k-sent:#3dd39c; --k-sent-soft:#123327; --k-month:#35cfbe; --k-month-soft:#123430; --shadow:0 14px 34px rgba(0,0,0,.4); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#130e1d; --surface:#1e182b; --surface2:#28213a; --ink:#f3eefb; --muted:#a99fbd; --line:#342b48;
+  --coral:#ff6b85; --orange:#ff9b68; --gold:#ffc53d; --teal:#2fd1bf; --sky:#6aa3ff; --grape:#a585ff; --wa:#2cc46b;
+  --coral-soft:#3b1a26; --gold-soft:#3a2f14; --teal-soft:#123430; --sky-soft:#1a2844; --grape-soft:#2a2045;
+  --hero:linear-gradient(140deg,#20164d 0%,#34277f 60%,#4a38a8 100%);
+  --k-today:#ff6f8a; --k-today-soft:#3b1a26; --k-soon:#fbbf3c; --k-soon-soft:#3a2c12; --k-future:#6ea4ff; --k-future-soft:#1a2844;
+  --k-late:#a7b1c2; --k-late-soft:#252c38; --k-sent:#3dd39c; --k-sent-soft:#123327; --k-month:#35cfbe; --k-month-soft:#123430; --shadow:0 14px 34px rgba(0,0,0,.4); color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:#2e1f6b}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:660px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.grid1{display:grid;grid-template-columns:minmax(0,1fr)}
+
+/* ---------- hero ---------- */
+.hero{background:var(--hero);color:#fff;position:relative;overflow:hidden}
+.hero .wrap{padding-block:16px 52px;position:relative;z-index:1}
+.topbar{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:11px;background:rgba(255,255,255,.22);display:grid;place-items:center}
+.logo svg.i{width:19px;height:19px}
+.topbar b{font:700 17px var(--display);letter-spacing:.3px;flex:1}
+.iconbtn{width:38px;height:38px;border-radius:12px;border:0;background:rgba(255,255,255,.22);color:#fff;display:grid;place-items:center}
+.hero-main{display:grid;grid-template-columns:minmax(0,1fr) 92px;align-items:center;gap:8px;margin-top:14px}
+.hero .date{font-size:13px;opacity:.85;margin-top:4px}
+.hero h1{font:700 23px/1.2 var(--display);margin:10px 0 0;text-wrap:balance}
+.hero h1 .num{font-size:54px;line-height:1;display:inline-block;margin-right:4px;vertical-align:-6px}
+.hero .sub{font-size:14px;opacity:.95;margin-top:6px}
+.cta{margin-top:14px;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:16px;background:#fff;color:#3b2a85;font:700 16px var(--display);padding:13px 18px;box-shadow:0 8px 22px rgba(20,10,60,.3)}
+.cta .badge{background:#4a36b0;color:#fff;border-radius:999px;font-size:13px;padding:1px 9px}
+.cta.done{color:#0d8b7c}
+.hero .art{width:92px;margin:0}
+.float{position:absolute;pointer-events:none;animation:bob 6s ease-in-out infinite}
+.float.b2{animation-duration:7.5s;animation-delay:-2s}.float.b3{animation-duration:8.5s;animation-delay:-4s}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-14px) rotate(3deg)}}
+.confetti{position:absolute;inset:0;pointer-events:none;opacity:.6}
+
+/* ---------- search ---------- */
+.searchbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;margin-top:-28px;padding-block:6px 8px}
+.searchbar.stuck{background:var(--bg)}
+.search{position:relative}
+.search input{width:100%;height:54px;border-radius:18px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);padding:0 48px;font-size:16px}
+.search input::placeholder{color:var(--muted)}
+.search .ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--coral);pointer-events:none}
+.search .clr{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:0;background:var(--surface2);border-radius:11px;width:36px;height:36px;color:var(--muted);display:grid;place-items:center}
+
+main .wrap{padding-block:12px 44px;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+
+/* ---------- section heads ---------- */
+.sec-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.sec-h .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center}
+.sec-h .ic svg.i{width:18px;height:18px}
+.sec-h h2{font:600 18px/1.2 var(--display);margin:0;flex:1}
+.sec-h .n{font:600 13px var(--display);color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px 11px}
+.c-coral{background:var(--coral-soft);color:var(--coral)} .c-gold{background:var(--gold-soft);color:#c58a00}
+.c-teal{background:var(--teal-soft);color:var(--teal)} .c-sky{background:var(--sky-soft);color:var(--sky)} .c-grape{background:var(--grape-soft);color:var(--grape)}
+
+/* ---------- celebrant carousel ---------- */
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 16px 14px;margin:0 -16px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.pc{flex:none;width:min(78%,300px);scroll-snap-align:center;background:var(--surface);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);border:0;padding:0;text-align:left}
+.rail.small .pc{width:min(64%,240px)}
+.pc .pic{position:relative;aspect-ratio:1;background:var(--surface2)}
+.pc .pic img{width:100%;height:100%;display:block;object-fit:cover}
+.pc .ribbon{position:absolute;top:10px;left:10px;font:700 12.5px var(--display);border-radius:999px;padding:4px 11px;color:#fff;background:rgba(36,22,58,.55);backdrop-filter:blur(4px);display:inline-flex;align-items:center;gap:5px}
+.pc .ribbon.today{background:#ff4d6d}
+.pc .ribbon.sent{background:#06a596}
+.pc .ribbon svg.i{width:14px;height:14px;stroke-width:2.6}
+.pc .body{padding:12px 14px 14px;display:grid;gap:8px}
+.pc .nm{font:600 16px/1.25 var(--display);overflow-wrap:anywhere}
+.pc .meta{font-size:12.5px;color:var(--muted);margin-top:-4px}
+.pc .go{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border-radius:14px;background:var(--coral);color:#fff;font:600 15px var(--display)}
+.pc .go.done{background:var(--teal-soft);color:var(--teal)}
+.none-card{background:var(--surface);border-radius:22px;box-shadow:var(--shadow);padding:18px;display:flex;gap:14px;align-items:center}
+.none-card .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;flex:none}
+.none-card .ic svg.i{width:26px;height:26px}
+.none-card b{font:600 16px var(--display);display:block}
+.none-card span{font-size:13.5px;color:var(--muted)}
+
+/* ---------- timeline ---------- */
+.tl{display:grid;gap:14px}
+.day{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px}
+.day .when{text-align:center;padding-top:4px}
+.day .when .d{font:700 24px/1 var(--display);display:block}
+.day .when .m{font:600 11.5px var(--display);color:var(--muted)}
+.day .when .w{display:inline-block;margin-top:4px;font-size:11px;border-radius:999px;padding:1px 7px;background:var(--surface2);color:var(--muted)}
+.list{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;padding:11px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item:active{background:var(--surface2)}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:600 14px var(--display);flex:none}
+.who{flex:1;min-width:0}
+.who .nm{font-weight:600;overflow-wrap:anywhere;line-height:1.3;display:block}
+.who .sub{font-size:12.5px;color:var(--muted)}
+.tag{flex:none;font:600 12px var(--display);border-radius:999px;padding:4px 10px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.tag svg.i{width:13px;height:13px;stroke-width:2.6}
+.t-today{background:var(--coral);color:#fff} .t-soon{background:var(--gold-soft);color:#b57900}
+.t-later{background:var(--sky-soft);color:var(--sky)} .t-sent{background:var(--teal-soft);color:var(--teal)} .t-miss{background:var(--grape-soft);color:var(--grape)}
+.cal{flex:none;width:46px;border-radius:12px;overflow:hidden;background:var(--surface2);text-align:center;box-shadow:inset 0 0 0 1px var(--line)}
+.cal .m{display:block;font:600 10.5px/1 var(--display);color:#fff;padding:4px 0 3px}
+.cal .d{display:block;font:700 19px/1.25 var(--display);padding:2px 0 3px}
+.empty{padding:20px 16px;color:var(--muted);font-size:14px;display:flex;gap:10px;align-items:center}
+.more{width:100%;border:0;border-top:1px solid var(--line);background:none;padding:12px;color:var(--coral);font-weight:600}
+@media (max-width:380px){.item .av{display:none}}
+
+/* ---------- months ---------- */
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.mt{border:0;border-radius:16px;background:var(--surface);box-shadow:var(--shadow);padding:10px 4px 9px;display:grid;justify-items:center;gap:2px}
+.mt .ml{font:600 15px var(--display)}
+.mt .mc{font-size:11.5px;color:var(--muted)}
+.mt .bar{width:60%;height:4px;border-radius:2px;margin-top:3px}
+.mt.on{color:#fff}.mt.on .mc{color:rgba(255,255,255,.88)}.mt.on .bar{background:#fff!important}
+.foot{font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+
+/* ---------- colour meaning ---------- */
+.k-today{--k:var(--k-today);--ks:var(--k-today-soft)} .k-soon{--k:var(--k-soon);--ks:var(--k-soon-soft)}
+.k-future{--k:var(--k-future);--ks:var(--k-future-soft)} .k-late{--k:var(--k-late);--ks:var(--k-late-soft)}
+.k-sent{--k:var(--k-sent);--ks:var(--k-sent-soft)} .k-month{--k:var(--k-month);--ks:var(--k-month-soft)}
+
+/* hero reminder tiles */
+.eyebrow{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border-radius:999px;padding:3px 11px;font:600 12.5px var(--display);letter-spacing:.4px}
+.eyebrow svg.i{width:14px;height:14px}
+.htiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.htile{border:0;border-radius:16px;background:var(--surface);color:var(--ink);padding:10px 10px 9px;display:grid;gap:1px;justify-items:start;text-align:left;box-shadow:0 6px 18px rgba(20,10,60,.22);border-top:4px solid var(--k)}
+.htile .hi{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--ks);color:var(--k)}
+.htile .hi svg.i{width:15px;height:15px}
+.htile b{font:700 26px/1.1 var(--display);color:var(--k);margin-top:4px;font-variant-numeric:tabular-nums}
+.htile .hl{font-size:12px;color:var(--muted)}
+.cta.wide{width:100%;justify-content:center;margin-top:10px}
+
+/* section blocks: same frame everywhere, colour band says what it is */
+.blk{background:var(--surface);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.blk-h{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--ks);border-bottom:1px solid var(--line)}
+.blk-h .bi{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--k);color:#fff;flex:none}
+.blk-h .bi svg.i{width:17px;height:17px}
+.blk-h h2{font:600 16.5px/1.25 var(--display);margin:0;flex:1;color:var(--ink)}
+.blk-h .bn{font:700 13px var(--display);background:var(--k);color:#fff;border-radius:999px;padding:2px 10px;min-width:30px;text-align:center}
+.blk-b{padding:12px}
+.blk .rows{display:grid}
+.blk .item{padding:10px 4px;border-top:1px solid var(--line)}
+.blk .item:first-child{border-top:0}
+.item .cal .m{background:var(--k)!important}
+.tag.kt{background:var(--ks);color:var(--k)}
+.tag.ks{background:var(--k-sent-soft);color:var(--k-sent)}
+.blk .empty{padding:8px 4px}
+.blk .more{border-top:1px solid var(--line);margin-top:4px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.tc{border:0;padding:0;background:var(--surface);border-radius:18px;overflow:hidden;text-align:left;display:grid;grid-template-columns:minmax(0,1fr);box-shadow:0 0 0 1px var(--line)}
+.tc .pic{position:relative;aspect-ratio:1;background:var(--surface2)}
+.tc .pic img{width:100%;height:100%;display:block}
+.tc .rb{position:absolute;top:8px;left:8px;font:700 11.5px var(--display);border-radius:999px;padding:3px 9px;color:#fff;background:var(--k-sent);display:inline-flex;gap:4px;align-items:center}
+.tc .rb svg.i{width:12px;height:12px;stroke-width:2.8}
+.tc .tb{padding:10px;display:grid;gap:6px}
+.tc .nm{font:600 14.5px/1.25 var(--display);overflow-wrap:anywhere}
+.tc .meta{font-size:12px;color:var(--muted);margin-top:-3px}
+.tc .go{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border-radius:12px;background:var(--k-today);color:#fff;font:600 14px var(--display)}
+.tc .go svg.i{width:16px;height:16px}
+.tc .go.done{background:var(--k-sent-soft);color:var(--k-sent)}
+.day{grid-template-columns:50px minmax(0,1fr);gap:10px}
+.day+.day{border-top:1px dashed var(--line);padding-top:10px}
+.day .when .d{color:var(--k-future)}
+.day .rows .item:first-child{padding-top:2px}
+.mt{box-shadow:0 0 0 1px var(--line)}
+.mt.on{background:var(--k-month)!important;color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--k);margin-right:5px;vertical-align:-1px}
+
+/* ---------- send sheet ---------- */
+.sheet .sh-bar{background:var(--ks);border-bottom:3px solid var(--k)}
+.sheet .btn.primary{background:var(--k);border-color:var(--k)}
+.scrim{position:fixed;inset:0;background:rgba(14,8,24,.55);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg);border-radius:26px 26px 0 0;max-height:95%;overflow-y:auto;box-shadow:0 -12px 40px rgba(0,0,0,.3);padding-bottom:env(safe-area-inset-bottom,0px);animation:up .24s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.3}to{transform:none;opacity:1}}
+.sh-bar{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line)}
+.sh-bar .wrap{display:flex;align-items:center;gap:10px;padding-block:10px}
+.sh-bar .t{flex:1;min-width:0}
+.sh-bar .t b{display:block;font:600 16.5px/1.25 var(--display);overflow-wrap:anywhere}
+.sh-bar .t span{font-size:12.5px;color:var(--muted)}
+.sh-bar .qpos{font:600 12px var(--display);background:var(--coral-soft);color:var(--coral);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.xbtn{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
+.sh-body{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding-block:14px 26px}
+.preview{position:relative;border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}
+.preview img{width:100%;max-width:100%;aspect-ratio:1;display:block;background:var(--surface2)}
+.styles{display:flex;gap:8px}
+.sw{flex:1;border:2px solid transparent;border-radius:14px;padding:4px;background:var(--surface);box-shadow:var(--shadow);display:grid;gap:4px;justify-items:center;font:600 12.5px var(--display);color:var(--muted)}
+.sw i{display:block;width:100%;height:30px;border-radius:10px}
+.sw.on{border-color:var(--coral);color:var(--ink)}
+.seg{display:flex;background:var(--surface2);border-radius:14px;padding:4px}
+.seg button{flex:1;border:0;background:none;border-radius:10px;padding:9px 4px;font:600 14px var(--display);color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.steps{background:var(--surface);border-radius:22px;box-shadow:var(--shadow);padding:6px 14px}
+.step{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px dashed var(--line);align-items:start}
+.step:first-child{border-top:0}
+.step .no{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:700 15px var(--display);background:var(--surface2);color:var(--muted)}
+.step.ok .no{background:var(--teal);color:#fff}
+.step .lbl{font:600 15px/1.3 var(--display)}
+.step .hint{font-size:12.5px;color:var(--muted);margin-top:2px}
+.step .act{margin-top:9px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:16px;border:1px solid var(--line);background:var(--surface);font:600 15px var(--display);text-decoration:none;color:var(--ink);text-align:center;padding:6px 12px;width:100%}
+.btn.primary{background:var(--coral);color:#fff;border-color:var(--coral)}
+.btn.wa{background:var(--wa);color:#fff;border-color:var(--wa)}
+.btn.done{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn.soft{background:var(--surface2);border-color:transparent}
+.btn[aria-disabled="true"]{opacity:.5}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+details.edit{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
+details.edit summary{font:600 15px var(--display);cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none}
+details.edit summary::-webkit-details-marker{display:none}
+details.edit summary .chev{margin-left:auto;transition:transform .2s}
+details.edit[open] summary .chev{transform:rotate(180deg)}
+details.edit .inner{display:grid;gap:10px;margin-top:12px}
+textarea{width:100%;min-height:190px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);padding:12px;line-height:1.55;resize:vertical}
+.phone{display:flex;gap:8px}
+.phone input{flex:1;min-width:0;height:50px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);padding:0 14px;font-size:16px}
+.phone .btn{width:auto;min-width:80px}
+.small{font-size:12.5px;color:var(--muted)}
+.facts{display:flex;flex-wrap:wrap;gap:8px}
+.fact{display:inline-flex;align-items:center;gap:6px;background:var(--surface);box-shadow:var(--shadow);border-radius:999px;padding:6px 12px;font:600 13px var(--display)}
+.fact svg.i{width:15px;height:15px;color:var(--coral)}
+.qnav{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:14px;font-size:14px;z-index:40;max-width:calc(100% - 32px);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+.burst{position:fixed;inset:0;pointer-events:none;z-index:45}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="hero">
+  <svg class="confetti" viewBox="0 0 400 260" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="26" cy="40" r="4" fill="#fff"/><circle cx="140" cy="22" r="3" fill="#ffe08a"/><circle cx="230" cy="58" r="2.5" fill="#fff"/>
+    <circle cx="70" cy="200" r="3" fill="#ffe08a"/><circle cx="210" cy="230" r="4" fill="#fff"/><circle cx="180" cy="150" r="2" fill="#fff"/>
+    <rect x="100" y="110" width="6" height="13" rx="2" fill="#fff" transform="rotate(30 103 116)"/><rect x="300" y="30" width="6" height="13" rx="2" fill="#ffe08a" transform="rotate(-25 303 36)"/>
+    <rect x="20" y="130" width="6" height="13" rx="2" fill="#7fd1ff" transform="rotate(-40 23 136)"/><rect x="260" y="190" width="6" height="13" rx="2" fill="#7fd1ff" transform="rotate(20 263 196)"/>
+  </svg>
+  <svg class="float" style="right:22%;top:18px;width:34px" viewBox="0 0 40 70" aria-hidden="true"><ellipse cx="20" cy="20" rx="16" ry="19" fill="#7fd1ff"/><path d="M17 39l3-4 3 4z" fill="#7fd1ff"/><path d="M20 40c-4 8 4 14 0 26" stroke="#fff" stroke-opacity=".7" fill="none"/><ellipse cx="14" cy="13" rx="4" ry="6" fill="#fff" fill-opacity=".5"/></svg>
+  <svg class="float b2" style="right:4%;top:62px;width:28px" viewBox="0 0 40 70" aria-hidden="true"><ellipse cx="20" cy="20" rx="16" ry="19" fill="#ffe08a"/><path d="M17 39l3-4 3 4z" fill="#ffe08a"/><path d="M20 40c-4 8 4 14 0 26" stroke="#fff" stroke-opacity=".7" fill="none"/><ellipse cx="14" cy="13" rx="4" ry="6" fill="#fff" fill-opacity=".5"/></svg>
+  <svg class="float b3" style="left:48%;top:4px;width:22px" viewBox="0 0 40 70" aria-hidden="true"><ellipse cx="20" cy="20" rx="16" ry="19" fill="#fff"/><path d="M17 39l3-4 3 4z" fill="#fff"/><path d="M20 40c-4 8 4 14 0 26" stroke="#fff" stroke-opacity=".7" fill="none"/></svg>
+  <div class="wrap">
+    <div class="topbar">
+      <span class="logo"><svg class="i"><use href="#i-cake"/></svg></span><b>客户生日簿</b>
+      <button class="iconbtn" id="btnSet" aria-label="设置"><svg class="i"><use href="#i-sliders"/></svg></button>
+    </div>
+    <div class="hero-main">
+      <div>
+        <span class="eyebrow"><svg class="i"><use href="#i-bell"/></svg>今日提醒</span>
+        <h1 id="heroTitle"></h1>
+        <div class="date" id="heroDate"></div>
+      </div>
+      <svg class="art" viewBox="0 0 130 150" aria-hidden="true">
+        <ellipse cx="66" cy="141" rx="56" ry="7" fill="#000" fill-opacity=".12"/>
+        <ellipse cx="66" cy="137" rx="52" ry="7" fill="#fff"/>
+        <rect x="22" y="98" width="88" height="38" rx="10" fill="#fff6ee"/>
+        <path d="M22 107q0-9 10-9h68q10 0 10 9v4q-5.5 6-11 0q-5.5 6-11 0q-5.5 6-11 0q-5.5 6-11 0q-5.5 6-11 0q-5.5 6-11 0q-5.5 6-11 0q-5 6-12 0z" fill="#ff8fa3"/>
+        <circle cx="40" cy="124" r="3.2" fill="#ffd166"/><circle cx="58" cy="127" r="3.2" fill="#3a86ff"/><circle cx="76" cy="123" r="3.2" fill="#06b6a4"/><circle cx="94" cy="126" r="3.2" fill="#ffd166"/>
+        <rect x="36" y="66" width="60" height="34" rx="9" fill="#fff"/>
+        <path d="M36 74q0-8 9-8h42q9 0 9 8v3q-5 5-10 0q-5 5-10 0q-5 5-10 0q-5 5-10 0q-5 5-10 0q-5 5-10 0z" fill="#ffd166"/>
+        <rect x="48" y="44" width="6" height="22" rx="2" fill="#3a86ff"/><rect x="63" y="38" width="6" height="28" rx="2" fill="#ff4d6d"/><rect x="78" y="44" width="6" height="22" rx="2" fill="#06b6a4"/>
+        <path d="M51 42c-4-5 0-10 0-12 3 4 4 8 0 12z" fill="#ffe08a"/><path d="M66 36c-4-5 0-10 0-12 3 4 4 8 0 12z" fill="#ffe08a"/><path d="M81 42c-4-5 0-10 0-12 3 4 4 8 0 12z" fill="#ffe08a"/>
+        <path d="M108 60l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff"/><path d="M14 84l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="htiles" id="heroTiles"></div>
+    <button class="cta wide" id="cta" hidden></button>
+  </div>
+</header>
+
+<div class="searchbar" id="searchbar"><div class="wrap">
+  <div class="search">
+    <svg class="i ic"><use href="#i-search"/></svg>
+    <input id="q" type="search" placeholder="搜客户名字，或日期如 11/07" autocomplete="off" enterkeyhint="search" aria-label="搜索客户">
+    <button class="clr" id="qClear" aria-label="清除" hidden><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+</div></div>
+
+<main><div class="wrap" id="view"></div></main>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true"></div>
+<canvas class="burst" id="burst" hidden></canvas>
+<div id="toast" role="status"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8C10 4 6 4 6 6.5S9 8 12 8c3 0 6 .5 6-1.5S14 4 12 8"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.3L3 21"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-cake" viewBox="0 0 24 24"><path d="M4 21h16M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7"/><path d="M5 16c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0"/><path d="M12 12V8M12 5.5c.8-.8.8-1.7 0-2.5-.8.8-.8 1.7 0 2.5"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 8z"/><path d="m9 13 2 2 4-4"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M9 11V5a1.5 1.5 0 0 1 3 0v5M12 10V4a1.5 1.5 0 0 1 3 0v6M15 10V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5-2.7L3 14.5a1.6 1.6 0 0 1 2.5-2L9 15"/></symbol>
+</svg>
+
+<script>
+const DATA = /*__DATA__*/[];
+const EMBEDDED = DATA.length > 0;   // claude.ai build has the list inside; the public build imports it on the phone
+const SOURCE = /*__SOURCE__*/'' || '客户资料只保存在这部手机里，不会上传到网上';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic = id => `<svg class="i"><use href="#i-${id}"/></svg>`;
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const prefs = Object.assign({ sender: /*__SENDER__*/'', lang: 'en', theme: 'navy' }, LS.get('cbl_prefs', {}));
+if ((prefs.v || 0) < 2) { prefs.theme = 'navy'; prefs.v = 2; } // calmer default card so the home screen isn't all red
+const sent = LS.get('cbl_sent', {});      // customerId_year -> "d/m"
+const phones = LS.get('cbl_phones', {});  // customerId -> phone the user typed
+
+let cur = null, queue = null; // open send sheet, and the send-one-by-one queue
+// ---------- private storage (your own, follows your claude.ai login) ----------
+let cloud = null, cloudState = 'local', writing = false, again = false;
+async function flushCloud() {
+  if (!cloud) return;
+  if (writing) { again = true; return; }
+  writing = true;
+  try { await cloud.set({ sent, phones, sender: prefs.sender, updatedAt: Date.now() }); cloudState = 'synced'; }
+  catch (e) { cloudState = 'error'; }
+  writing = false;
+  if (again) { again = false; flushCloud(); }
+}
+function persist() { LS.set('cbl_sent', sent); LS.set('cbl_phones', phones); LS.set('cbl_prefs', prefs); flushCloud(); }
+(async () => {
+  try {
+    if (!window.claude || !claude.use) return;
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id(); if (!id) return;
+    const ref = db.collection('data/users/' + id).doc('birthday-state');
+    const snap = await Promise.race([ref.get(), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 10000))]);
+    const d = (snap && snap.data && snap.data()) || {};
+    let localExtra = false;
+    for (const k in sent) if (!(d.sent || {})[k]) localExtra = true;
+    for (const k in phones) if (!(d.phones || {})[k]) localExtra = true;
+    Object.assign(sent, d.sent || {}); Object.assign(phones, d.phones || {});
+    if (d.sender && !LS.get('cbl_prefs', null)) prefs.sender = d.sender;
+    cloud = ref; cloudState = 'synced';
+    LS.set('cbl_sent', sent); LS.set('cbl_phones', phones);
+    if (localExtra) flushCloud();
+    render(); if (cur) drawSheet();
+  } catch (e) { cloudState = 'local'; }
+})();
+let downloads = null;
+// Web Share with files works in normal phone browsers (not inside claude.ai)
+const canShareFiles = (() => { try { return !window.claude && !!navigator.canShare && navigator.canShare({ files: [new File([new Blob(['x'], { type: 'image/png' })], 't.png', { type: 'image/png' })] }); } catch (e) { return false; } })();
+(async () => { try { if (window.claude && claude.use) downloads = await claude.use('downloads'); } catch (e) {} if (cur) drawSheet(); })();
+
+// ---------- dates & customers ----------
+const DAY = 86400000;
+const WD = ['周日','周一','周二','周三','周四','周五','周六'];
+const MON = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const MCOL = ['#3a86ff','#ff4d6d','#06b6a4','#8a5cf6','#ff8e53','#e0a100','#ff4d6d','#3a86ff','#06b6a4','#8a5cf6','#ff8e53','#d94f6a'];
+const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function occ(c, y) { return new Date(y, c.m - 1, c.m === 2 && c.d === 29 && !isLeap(y) ? 28 : c.d); }
+function hash(s) { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function niceName(n) {
+  n = String(n || '').trim();
+  if (!/[A-Z]/.test(n) || n !== n.toUpperCase()) return n;
+  const low = new Set(['BIN','BINTI','BTE','BT','BINTE']), keep = new Set(['A/L','A/P','S/O','D/O','@']);
+  return n.split(' ').map(w => keep.has(w) ? w : low.has(w) ? w.toLowerCase() : w.toLowerCase().replace(/(^|[-'’])([a-z])/g, (m, p, ch) => p + ch.toUpperCase())).join(' ');
+}
+const squash = s => String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+let CUST = [];
+function setCustomers(rows) {
+CUST = rows.map(([name, bd]) => {
+  const m = String(bd).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const c = { id: squash(name) + '_' + (m ? m[1] + m[2] : 'x'), name, key: squash(name) };
+  if (m) { c.d = +m[1]; c.m = +m[2]; c.y = +m[3]; }
+  return c;
+});
+CUST.forEach(c => {
+  if (!c.m) return;
+  const t = today(), y = t.getFullYear();
+  const list = [y - 1, y, y + 1].map(yr => ({ date: occ(c, yr), yr })).map(o => ({ ...o, diff: Math.round((o.date - t) / DAY) }));
+  c.next = list.find(o => o.diff >= 0); c.prev = [...list].reverse().find(o => o.diff < 0);
+});
+}
+setCustomers(EMBEDDED ? DATA : LS.get('cbl_customers', []));
+const isSent =(c, o) => !!(o && sent[c.id + '_' + o.yr]);
+const AV = [['#ffe6eb','#e0334f'],['#fff3d1','#b37a00'],['#dcf7f3','#0b8f81'],['#e4eeff','#2c6de0'],['#efe8ff','#6d44db'],['#ffeadb','#d2601c'],['#e5f6e1','#3a8f2c'],['#fde6f6','#b83993']];
+function initials(n) { const w = String(n).replace(/\b(BIN|BINTI|A\/L|A\/P|@)\b/g, ' ').split(/\s+/).filter(Boolean); return ((w[0] || '?')[0] + (w[1] ? w[1][0] : '')).toUpperCase(); }
+function avatar(c) { const [bg, fg] = AV[hash(c.name) % AV.length]; return `<span class="av" style="background:${bg};color:${fg}" aria-hidden="true">${esc(initials(c.name))}</span>`; }
+const dayWord = d => d === 0 ? '今天' : d === 1 ? '明天' : d === 2 ? '后天' : d > 0 ? `${d} 天后` : `${-d} 天前`;
+
+// ---------- messages ----------
+const TPL = {
+  en: [
+    n => `Dear ${n},\n\nWishing you a very happy birthday! 🎉 Thank you for your continued trust in us. May the year ahead bring good health, happiness and success to you.`,
+    n => `Happy Birthday, ${n}! 🎂\n\nOn your special day, I would like to wish you joy, good health and a prosperous year ahead. It is a privilege to take care of you.`,
+    n => `Dear ${n},\n\nMany happy returns of the day! 🎈 May this new year of life be filled with wonderful moments and new achievements. Thank you for being a valued client.`
+  ],
+  ms: [
+    n => `Yang dihormati ${n},\n\nSelamat Hari Jadi! 🎉 Terima kasih atas kepercayaan anda yang berterusan. Semoga tahun yang mendatang membawa kesihatan yang baik, kebahagiaan dan kejayaan kepada anda.`,
+    n => `Selamat Hari Jadi, ${n}! 🎂\n\nSempena hari istimewa anda, saya mengucapkan semoga anda sentiasa sihat sejahtera, bahagia dan dimurahkan rezeki sepanjang tahun.`,
+    n => `${n} yang dihormati,\n\nSelamat menyambut hari lahir! 🎈 Semoga usia yang baharu ini dipenuhi dengan detik-detik indah dan pencapaian yang membanggakan. Terima kasih kerana menjadi pelanggan yang dihargai.`
+  ],
+  lateEn: n => `Dear ${n},\n\nA belated happy birthday! 🎉 I hope you had a wonderful day. Wishing you good health and continued success in the year ahead.`,
+  lateMs: n => `Yang dihormati ${n},\n\nSelamat Hari Jadi walaupun agak terlewat! 🎉 Semoga anda telah menyambutnya dengan penuh gembira. Semoga sentiasa sihat sejahtera dan terus berjaya.`
+};
+function message(c, lang, shift, late) {
+  const n = niceName(c.name), sign = prefs.sender.trim();
+  const one = l => (late ? (l === 'en' ? TPL.lateEn : TPL.lateMs)(n) : TPL[l][(hash(c.id) + shift) % 3](n)) + '\n\n' + (l === 'en' ? 'Warm regards,' : 'Salam hormat,') + (sign ? '\n' + sign : '');
+  return lang === 'both' ? one('en') + '\n\n— — —\n\n' + one('ms') : one(lang);
+}
+
+// ---------- birthday card (drawn on the phone) ----------
+const THEMES = {
+  coral: { label: '派对', swatch: 'linear-gradient(135deg,#ff4d6d,#ffb347)', bg: ['#ff4d6d', '#ffb347'], title: '#ffffff', name: '#ffffff', sub: '#fff3e6', frame: 'rgba(255,255,255,.6)', conf: ['#ffffff', '#ffe08a', '#3a86ff', '#06b6a4'], ball: ['#ffe08a', '#3a86ff', '#ffffff'], cake: ['#fff6ee', '#ffd166', '#3a86ff'] },
+  navy:  { label: '典雅', swatch: 'linear-gradient(135deg,#0b2545,#1b3f6e)', bg: ['#0b2545', '#1b3f6e'], title: '#e9c46a', name: '#ffffff', sub: '#d3dce8', frame: 'rgba(233,196,106,.65)', conf: ['#e9c46a', '#f6e3a6', '#ffffff', '#8ecae6'], ball: ['#e9c46a', '#8ecae6', '#f4a261'], cake: ['#f6e3a6', '#e9c46a', '#8ecae6'] },
+  mint:  { label: '清新', swatch: 'linear-gradient(135deg,#d9f7f1,#c6e2ff)', bg: ['#e3fbf5', '#c6e2ff'], title: '#0b8f81', name: '#1d2f45', sub: '#3f6475', frame: 'rgba(11,143,129,.45)', conf: ['#ff4d6d', '#ffd166', '#06b6a4', '#3a86ff', '#8a5cf6'], ball: ['#ff4d6d', '#ffd166', '#8a5cf6'], cake: ['#ffffff', '#ff8fa3', '#06b6a4'] },
+  grape: { label: '星光', swatch: 'linear-gradient(135deg,#3b1d72,#8a5cf6)', bg: ['#2a1250', '#7b4ee6'], title: '#ffd166', name: '#ffffff', sub: '#e6dcff', frame: 'rgba(255,209,102,.55)', conf: ['#ffd166', '#ffffff', '#ff8fa3', '#7fd1ff'], ball: ['#ff8fa3', '#ffd166', '#7fd1ff'], cake: ['#fff6ee', '#ff8fa3', '#ffd166'] }
+};
+function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function fit(x, text, max, size, min, tpl) { let s = size; while (s > min) { x.font = tpl.replace('{s}', s); if (x.measureText(text).width <= max) break; s -= 2; } x.font = tpl.replace('{s}', s); return s; }
+function rr(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+function drawCake(x, cx, top, T) {
+  const [body, icing, candle] = T.cake;
+  x.fillStyle = 'rgba(0,0,0,.12)'; x.beginPath(); x.ellipse(cx, top + 120, 140, 15, 0, 0, 7); x.fill();
+  x.fillStyle = '#ffffff'; x.beginPath(); x.ellipse(cx, top + 114, 130, 14, 0, 0, 7); x.fill();
+  x.fillStyle = body; rr(x, cx - 108, top + 48, 216, 66, 16); x.fill();
+  x.fillStyle = icing; x.beginPath(); x.moveTo(cx - 108, top + 66); x.quadraticCurveTo(cx - 108, top + 48, cx - 92, top + 48); x.lineTo(cx + 92, top + 48); x.quadraticCurveTo(cx + 108, top + 48, cx + 108, top + 66);
+  for (let i = 0; i < 8; i++) { const xx = cx + 108 - i * 27; x.quadraticCurveTo(xx - 6.5, top + 86, xx - 13.5, top + 70); x.quadraticCurveTo(xx - 20.5, top + 86, xx - 27, top + 66); }
+  x.closePath(); x.fill();
+  [[-66, '#ffd166'], [-22, '#3a86ff'], [22, '#06b6a4'], [66, '#ff4d6d']].forEach(([dx, col]) => { x.fillStyle = col; x.beginPath(); x.arc(cx + dx, top + 98, 6.5, 0, 7); x.fill(); });
+  [-44, 0, 44].forEach((dx, i) => {
+    const up = i === 1 ? 10 : 0;
+    x.fillStyle = i === 1 ? '#ff4d6d' : candle; rr(x, cx + dx - 6.5, top + 4 - up, 13, 46 + up, 4); x.fill();
+    const fy = top - 2 - up;
+    x.fillStyle = '#ffd166'; x.beginPath(); x.moveTo(cx + dx, fy - 26); x.quadraticCurveTo(cx + dx + 12, fy - 6, cx + dx, fy + 2); x.quadraticCurveTo(cx + dx - 12, fy - 6, cx + dx, fy - 26); x.fill();
+    x.fillStyle = '#fff6d8'; x.beginPath(); x.ellipse(cx + dx, fy - 6, 3.2, 6.5, 0, 0, 7); x.fill();
+  });
+}
+function cardCanvas(c, lang, theme, size = 1080) {
+  const W = 1080, cv = document.createElement('canvas'); cv.width = cv.height = size;
+  const x = cv.getContext('2d'); x.scale(size / W, size / W);
+  const R = rng(hash(c.id)), T = THEMES[theme] || THEMES.coral;
+  const g = x.createLinearGradient(0, 0, W, W); g.addColorStop(0, T.bg[0]); g.addColorStop(1, T.bg[1]); x.fillStyle = g; x.fillRect(0, 0, W, W);
+  const rg = x.createRadialGradient(W / 2, 470, 40, W / 2, 470, 560); rg.addColorStop(0, 'rgba(255,255,255,.16)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = rg; x.fillRect(0, 0, W, W);
+  for (let i = 0; i < 130; i++) { const px = R() * W, py = R() * W; if (px > 140 && px < 940 && py > 230 && py < 930) continue; x.save(); x.translate(px, py); x.rotate(R() * Math.PI); x.fillStyle = T.conf[Math.floor(R() * T.conf.length)]; x.globalAlpha = .6 + R() * .4; if (R() < .45) { rr(x, -6, -13, 12, 26, 3); x.fill(); } else if (R() < .7) { x.beginPath(); x.arc(0, 0, 5 + R() * 5, 0, 7); x.fill(); } else { x.beginPath(); for (let k = 0; k < 5; k++) { const a = k * 1.2566 - 1.5708, a2 = a + .6283; x.lineTo(Math.cos(a) * 12, Math.sin(a) * 12); x.lineTo(Math.cos(a2) * 5, Math.sin(a2) * 5); } x.closePath(); x.fill(); } x.restore(); }
+  const balloon = (bx, by, col, s) => { x.strokeStyle = T.frame; x.lineWidth = 2.5; x.beginPath(); x.moveTo(bx, by + 70 * s); x.bezierCurveTo(bx - 20, by + 140 * s, bx + 20, by + 190 * s, bx, by + 250 * s); x.stroke(); x.fillStyle = col; x.beginPath(); x.ellipse(bx, by, 52 * s, 66 * s, 0, 0, 7); x.fill(); x.beginPath(); x.moveTo(bx - 9 * s, by + 72 * s); x.lineTo(bx, by + 60 * s); x.lineTo(bx + 9 * s, by + 72 * s); x.fill(); x.fillStyle = 'rgba(255,255,255,.4)'; x.beginPath(); x.ellipse(bx - 18 * s, by - 24 * s, 12 * s, 20 * s, -.5, 0, 7); x.fill(); };
+  balloon(120, 150, T.ball[0], 1); balloon(215, 115, T.ball[1], .85); balloon(85, 300, T.ball[2], .7);
+  balloon(960, 150, T.ball[1], 1); balloon(865, 115, T.ball[2], .85); balloon(995, 300, T.ball[0], .7);
+  x.strokeStyle = T.frame; x.lineWidth = 3; rr(x, 36, 36, W - 72, W - 72, 30); x.stroke();
+  x.textAlign = 'center'; x.fillStyle = T.title;
+  const script = '{s}px "Great Vibes", "Brush Script MT", cursive';
+  let y0;
+  if (lang === 'both') { fit(x, 'Happy Birthday', 760, 124, 70, script); x.fillText('Happy Birthday', W / 2, 300); fit(x, 'Selamat Hari Jadi', 720, 86, 56, script); x.fillText('Selamat Hari Jadi', W / 2, 392); y0 = 432; }
+  else { const t = lang === 'ms' ? 'Selamat Hari Jadi' : 'Happy Birthday'; fit(x, t, 780, 134, 70, script); x.fillText(t, W / 2, 340); y0 = 392; }
+  x.strokeStyle = T.title; x.lineWidth = 2.5; x.beginPath(); x.moveTo(W / 2 - 150, y0); x.lineTo(W / 2 - 18, y0); x.moveTo(W / 2 + 18, y0); x.lineTo(W / 2 + 150, y0); x.stroke();
+  x.save(); x.translate(W / 2, y0); x.rotate(Math.PI / 4); x.fillRect(-7, -7, 14, 14); x.restore();
+  const name = niceName(c.name), serif = '700 {s}px "Playfair Display", Georgia, serif'; let ny = y0 + 100; x.fillStyle = T.name;
+  x.font = serif.replace('{s}', 80);
+  if (x.measureText(name).width > 880 && name.includes(' ')) {
+    const w = name.split(' '); let best = 1, bw = 1e9;
+    for (let i = 1; i < w.length; i++) { const a = w.slice(0, i).join(' '), b = w.slice(i).join(' '); const m = Math.max(x.measureText(a).width, x.measureText(b).width); if (m < bw) { bw = m; best = i; } }
+    const l1 = w.slice(0, best).join(' '), l2 = w.slice(best).join(' ');
+    const s = Math.min(fit(x, l1, 880, 70, 40, serif), fit(x, l2, 880, 70, 40, serif)); x.font = serif.replace('{s}', s);
+    x.fillText(l1, W / 2, ny - 10); x.fillText(l2, W / 2, ny - 10 + s * 1.12); ny += s * 1.12 - 10;
+  } else { fit(x, name, 880, 80, 40, serif); x.fillText(name, W / 2, ny); }
+  x.fillStyle = T.sub;
+  const sEn = 'Wishing you joy, good health & success', sMs = 'Semoga sihat, bahagia & terus berjaya';
+  if (lang === 'both') { fit(x, sEn, 860, 34, 24, '500 {s}px Inter, Arial, sans-serif'); x.fillText(sEn, W / 2, ny + 72); fit(x, sMs, 860, 30, 22, 'italic 400 {s}px Inter, Arial, sans-serif'); x.fillText(sMs, W / 2, ny + 116); ny += 116; }
+  else { const t = lang === 'ms' ? sMs : sEn; fit(x, t, 860, 36, 24, '500 {s}px Inter, Arial, sans-serif'); x.fillText(t, W / 2, ny + 76); ny += 76; }
+  drawCake(x, W / 2, Math.max(ny + 46, 716), T);
+  const sign = prefs.sender.trim();
+  const foot = sign ? (lang === 'ms' ? `Ikhlas daripada ${sign}` : `With warm wishes from ${sign}`) : (lang === 'ms' ? 'Dengan ingatan tulus ikhlas' : 'With warm wishes');
+  x.fillStyle = T.title; fit(x, foot, 860, 32, 20, '600 {s}px Inter, Arial, sans-serif'); x.fillText(foot, W / 2, 985);
+  return cv;
+}
+const thumbs = {};
+function thumb(c) { const k = c.id + prefs.theme + prefs.lang; return thumbs[k] || (thumbs[k] = cardCanvas(c, prefs.lang, prefs.theme, 480).toDataURL('image/jpeg', .86)); }
+
+// ---------- WhatsApp ----------
+function waNumber(p) {
+  let dg = String(p || '').replace(/\D/g, ''); if (!dg) return '';
+  if (String(p).trim().startsWith('+') || dg.startsWith('60')) {} else if (dg.startsWith('0')) dg = '6' + dg; else if (dg.startsWith('1')) dg = '60' + dg;
+  return dg.length >= 10 && dg.length <= 13 ? dg : '';
+}
+const waLink = (num, text) => `https://wa.me/${num || ''}?text=${encodeURIComponent(text)}`;
+
+// ---------- home ----------
+let month = null; const showAll = {};
+function groups() {
+  const byNext = CUST.filter(c => c.next).sort((a, b) => a.next.diff - b.next.diff || a.name.localeCompare(b.name));
+  return {
+    byNext,
+    todayL: byNext.filter(c => c.next.diff === 0),
+    soon: byNext.filter(c => c.next.diff >= 1 && c.next.diff <= 3),
+    later: byNext.filter(c => c.next.diff >= 4 && c.next.diff <= 14),
+    missed: CUST.filter(c => c.prev && c.prev.diff >= -7 && !isSent(c, c.prev)).sort((a, b) => b.prev.diff - a.prev.diff)
+  };
+}
+function sendQueue() { const G = groups(); return [...G.todayL.map(c => ({ c, late: false })), ...G.soon.map(c => ({ c, late: false })), ...G.missed.map(c => ({ c, late: true }))].filter(x => !isSent(x.c, x.late ? x.c.prev : x.c.next)); }
+const secHead = (icon, cls, title, n) => `<div class="sec-h"><span class="ic ${cls}">${ic(icon)}</span><h2>${title}</h2>${n == null ? '' : `<span class="n">${n}</span>`}</div>`;
+function pcHTML(c, late) {
+  const o = late ? c.prev : c.next, done = isSent(c, o), age = c.y ? o.yr - c.y : null;
+  return `<button class="pc" data-id="${esc(c.id)}" data-late="${late ? 1 : ''}">
+    <span class="pic"><img src="${thumb(c)}" alt="${esc(c.name)} 的生日卡" loading="lazy"><span class="ribbon ${done ? 'sent' : o.diff === 0 ? 'today' : ''}">${done ? ic('check') + '已发送' : (o.diff === 0 ? ic('cake') : '') + dayWord(o.diff)}</span></span>
+    <span class="body"><span class="nm">${esc(niceName(c.name))}</span><span class="meta">${o.date.getMonth() + 1}月${o.date.getDate()}日 ${WD[o.date.getDay()]}${age ? ` · ${late ? '刚满' : '将满'} ${age} 岁` : ''}</span>
+    <span class="go ${done ? 'done' : ''}">${done ? ic('check') + '已发送' : ic('send') + (late ? '补发祝福' : '发送祝福')}</span></span></button>`;
+}
+// colour = how urgent: today / soon (1–3 days) / future / late (missed)
+function kindOf(c, late) { if (late) return 'late'; if (!c.next) return 'future'; const d = c.next.diff; return d === 0 ? 'today' : d <= 3 ? 'soon' : 'future'; }
+function itemHTML(c, late) {
+  const o = late ? c.prev : c.next, k = kindOf(c, late);
+  const tag = !o ? '<span class="tag kt">无生日</span>' : isSent(c, o) ? `<span class="tag ks">${ic('check')}已发送</span>` : `<span class="tag kt">${o.diff === 0 ? ic('cake') : ''}${dayWord(o.diff)}</span>`;
+  const sub = c.m ? `${c.d}/${c.m}/${c.y}${c.y && o ? ` · ${late ? '刚满' : '将满'} ${o.yr - c.y} 岁` : ''}` : '名单里没有生日资料';
+  return `<button class="item k-${k}" data-id="${esc(c.id)}" data-late="${late ? 1 : ''}">
+    <span class="cal"><span class="m">${c.m ? MON[c.m - 1] : '—'}</span><span class="d">${c.m ? c.d : '?'}</span></span>
+    ${avatar(c)}<span class="who"><span class="nm">${esc(c.name)}</span><span class="sub">${sub}</span></span>${tag}</button>`;
+}
+function listHTML(key, arr, late, limit = 30) {
+  if (!arr.length) return `<div class="empty">${ic('gift')}这段时间没有客户生日</div>`;
+  const all = showAll[key] || arr.length <= limit + 5;
+  return `<div class="rows">${(all ? arr : arr.slice(0, limit)).map(c => itemHTML(c, late)).join('')}</div>${all ? '' : `<button class="more" data-more="${key}">显示全部 ${arr.length} 位</button>`}`;
+}
+const block = (kind, icon, title, n, body) => `<section class="blk k-${kind}" id="sec-${kind}"><div class="blk-h"><span class="bi">${ic(icon)}</span><h2>${title}</h2>${n == null ? '' : `<span class="bn">${n}</span>`}</div><div class="blk-b">${body}</div></section>`;
+function tcHTML(c) {
+  const o = c.next, done = isSent(c, o), age = c.y ? o.yr - c.y : null;
+  return `<button class="tc" data-id="${esc(c.id)}">
+    <span class="pic"><img src="${thumb(c)}" alt="${esc(c.name)} 的生日卡">${done ? `<span class="rb">${ic('check')}已发送</span>` : ''}</span>
+    <span class="tb"><span class="nm">${esc(niceName(c.name))}</span><span class="meta">${age ? `今天满 ${age} 岁` : '今天生日'}</span>
+    <span class="go ${done ? 'done' : ''}">${done ? ic('check') + '已发送' : ic('send') + '发送祝福'}</span></span></button>`;
+}
+function render() {
+  if (!CUST.length) return renderWelcome();
+  const t = today(), G = groups(), Q = sendQueue();
+  $('#heroDate').textContent = `${t.getFullYear()}年${t.getMonth() + 1}月${t.getDate()}日 · ${WD[t.getDay()]}`;
+  $('#heroTitle').textContent = Q.length ? `有 ${Q.length} 份生日祝福等你发送` : '这几天的祝福都发完了';
+  $('#heroTiles').innerHTML = [['today', G.todayL.length, '今天生日', 'cake'], ['soon', G.soon.length, '1–3 天内', 'bell'], ['late', G.missed.length, '错过未发', 'history']]
+    .map(([k, n, l, i]) => `<button class="htile k-${k}" data-jump="${k}"><span class="hi">${ic(i)}</span><b>${n}</b><span class="hl">${l}</span></button>`).join('');
+  const cta = $('#cta'); cta.hidden = false;
+  if (Q.length) { cta.className = 'cta wide'; cta.innerHTML = `${ic('send')}开始逐个发送 <span class="badge">${Q.length}</span>`; }
+  else { cta.className = 'cta wide done'; cta.innerHTML = `${ic('check')}都发完了`; }
+  const q = $('#q').value.trim(); $('#qClear').hidden = !q;
+  const V = $('#view');
+  if (q) { V.innerHTML = searchHTML(q); return; }
+  // timeline for 4–14 days, grouped by day
+  const days = []; for (const c of G.later) { const k = c.next.diff; let d = days.find(x => x.k === k); if (!d) days.push(d = { k, date: c.next.date, list: [] }); d.list.push(c); }
+  const m = month ?? (t.getMonth() + 1);
+  const counts = MON.map((_, i) => CUST.filter(c => c.m === i + 1).length);
+  const inMonth = CUST.filter(c => c.m === m).sort((a, b) => a.d - b.d || a.name.localeCompare(b.name));
+  V.innerHTML = `
+    ${block('today', 'cake', '今天生日', G.todayL.length, G.todayL.length ? `<div class="tgrid">${G.todayL.map(tcHTML).join('')}</div>` : `<div class="empty">${ic('gift')}今天没有客户生日</div>`)}
+    ${block('soon', 'bell', '即将生日 · 1–3 天内', G.soon.length, listHTML('soon', G.soon, false, 10))}
+    ${G.missed.length ? block('late', 'history', '错过未发 · 最近 7 天', G.missed.length, listHTML('missed', G.missed, true, 5)) : ''}
+    ${block('future', 'calendar', '未来 4–14 天', G.later.length, days.length ? `<div class="tl">${days.map(d => `<div class="day"><div class="when"><span class="d">${d.date.getDate()}</span><span class="m">${MON[d.date.getMonth()]}</span><br><span class="w">${WD[d.date.getDay()]}</span></div><div>${listHTML('d' + d.k, d.list, false, 6)}</div></div>`).join('')}</div>` : `<div class="empty">${ic('gift')}这段时间没有客户生日</div>`)}
+    ${block('month', 'grid', '按月份查看', inMonth.length, `<div class="mgrid" role="tablist">${MON.map((l, i) => `<button class="mt ${m === i + 1 ? 'on' : ''}" role="tab" aria-selected="${m === i + 1}" data-month="${i + 1}"><span class="ml">${l}</span><span class="mc">${counts[i]} 位</span></button>`).join('')}</div>${listHTML('m' + m, inMonth, false, 20)}`)}
+    <div class="legend"><span class="k-today"><i></i>今天</span><span class="k-soon"><i></i>1–3 天</span><span class="k-future"><i></i>4 天以后</span><span class="k-late"><i></i>错过</span><span class="k-sent"><i></i>已发送</span></div>
+    <p class="foot">${SOURCE}<br>${CUST.length} 位客户 · 显示的是保单持有人（Policy Holder）的生日</p>`;
+}
+function searchHTML(q) {
+  let res;
+  const dm = q.match(/^(\d{1,2})\s*[\/.\-]\s*(\d{1,2})$/);
+  if (dm) res = CUST.filter(c => c.d === +dm[1] && c.m === +dm[2]);
+  else {
+    const k = squash(q);
+    res = CUST.filter(c => c.key.includes(k));
+    if (!res.length && k.length >= 4) res = CUST.filter(c => { let i = 0; for (const ch of c.key) if (ch === k[i]) i++; return i === k.length; });
+  }
+  res.sort((a, b) => (a.next ? a.next.diff : 999) - (b.next ? b.next.diff : 999));
+  return block('future', dm ? 'calendar' : 'search', dm ? `${dm[1]}/${dm[2]} 生日的客户` : '搜索结果', res.length, res.length ? listHTML('q', res, false, 50) : `<div class="empty">${ic('search')}找不到“${esc(q)}”。试试只打名字的一部分，如 “wong”，或日期如 11/07。</div>`);
+}
+
+// ---------- first run: load the customer list on this phone (public build) ----------
+function renderWelcome() {
+  const t = today();
+  $('#heroDate').textContent = `${t.getFullYear()}年${t.getMonth() + 1}月${t.getDate()}日 · ${WD[t.getDay()]}`;
+  $('#heroTitle').textContent = '先导入你的客户名单';
+  $('#heroTiles').innerHTML = [['today', '今天生日', 'cake'], ['soon', '1–3 天内', 'bell'], ['late', '错过未发', 'history']]
+    .map(([k, l, i]) => `<div class="htile k-${k}"><span class="hi">${ic(i)}</span><b>–</b><span class="hl">${l}</span></div>`).join('');
+  $('#cta').hidden = true;
+  $('#view').innerHTML = block('month', 'gift', '开始使用', null, `
+    <div class="steps" style="box-shadow:none;padding:0 2px">
+      <div class="step"><span class="no">1</span><div><div class="lbl">你的名字（祝福语署名）</div>
+        <div class="act phone"><input id="wName" type="text" placeholder="例如 Tan Mei Ling" value="${esc(prefs.sender)}" aria-label="你的名字"></div></div></div>
+      <div class="step"><span class="no">2</span><div><div class="lbl">选择客户名单 Excel</div>
+        <div class="hint">需要两栏：<b>Customer Name</b>（客户名字）和 <b>Birthday</b>（生日，日/月/年）。有 <b>Phone</b> 栏会一起导入。</div>
+        <div class="act"><label class="btn primary" for="wFile">${ic('download')}选择 Excel 文件</label><input type="file" id="wFile" accept=".xlsx,.xls,.csv" hidden></div>
+        <div class="hint" id="wMsg" style="margin-top:8px">${ic('check')}名单只存在这部手机里，不会上传到网上。</div></div></div>
+      <div class="step"><span class="no">${ic('gift')}</span><div><div class="lbl">还没有名单？</div>
+        <div class="act"><button class="btn soft" id="wDemo">${ic('cake')}先用示范资料看看</button></div></div></div>
+    </div>`);
+  $('#wFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f, $('#wName').value); };
+  $('#wDemo').onclick = () => { prefs.sender = $('#wName').value.trim(); prefs.demo = true; saveCustomers(demoRows()); toast('这是示范资料，导入你的 Excel 后会换成真的客户'); };
+}
+function saveCustomers(rows) { LS.set('cbl_customers', rows); setCustomers(rows); for (const k in thumbs) delete thumbs[k]; persist(); render(); }
+function toDMY(v) {
+  const pad = n => String(n).padStart(2, '0');
+  if (typeof v === 'number' && v > 1000 && v < 80000) { const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * DAY); return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`; }
+  const s = String(v ?? '').trim(); let m;
+  if ((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return `${pad(m[3])}/${pad(m[2])}/${m[1]}`;
+  if ((m = s.match(/^(\d{1,2})[-\/. ](\d{1,2})[-\/. ](\d{2,4})$/))) { let y = +m[3]; if (y < 100) y += y > new Date().getFullYear() % 100 ? 1900 : 2000; return `${pad(m[1])}/${pad(m[2])}/${y}`; }
+  return '';
+}
+async function importFile(file, sender) {
+  const msg = $('#wMsg') || { innerHTML: '' };
+  try {
+    if (!window.XLSX) throw new Error('Excel 读取工具没有加载，请连上网络再试。');
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', raw: /\.csv$/i.test(file.name) });
+    const grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+    const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const isName = h => /customer name|client name|policy holder|policyholder|^name$|^nama|full name|^customer$/.test(h);
+    const isBday = h => /birthday|date of birth|^dob$|birth date|tarikh lahir/.test(h);
+    const isPhone = h => /phone|mobile|handphone|^hp|contact|whatsapp|telefon/.test(h);
+    let hi = -1, ni = -1, bi = -1, pi = -1;
+    for (let r = 0; r < Math.min(grid.length, 10) && hi < 0; r++) {
+      const h = grid[r].map(norm); ni = h.findIndex(isName); bi = h.findIndex(isBday); pi = h.findIndex(isPhone);
+      if (ni >= 0 && bi >= 0) hi = r;
+    }
+    if (hi < 0) throw new Error('找不到“Customer Name”和“Birthday”这两栏。请检查 Excel 第一行的标题。');
+    const rows = [], seen = new Set(); let noBday = 0;
+    for (const r of grid.slice(hi + 1)) {
+      const name = String(r[ni] ?? '').replace(/\s+/g, ' ').trim(); if (!name) continue;
+      const bd = toDMY(r[bi]); if (!bd) noBday++;
+      const k = squash(name) + '|' + bd; if (seen.has(k)) continue; seen.add(k);
+      rows.push([name, bd]);
+      if (pi >= 0 && String(r[pi]).trim() && bd) { const m = bd.split('/'); const id = squash(name) + '_' + m[0] + m[1]; if (!phones[id]) phones[id] = String(r[pi]).trim(); }
+    }
+    if (!rows.length) throw new Error('这个文件里没有客户资料。');
+    if (sender != null) prefs.sender = String(sender).trim();
+    prefs.demo = false; prefs.importedAt = Date.now();
+    saveCustomers(rows);
+    toast(`已导入 ${rows.length} 位客户${noBday ? `（${noBday} 位没有生日资料）` : ''}`);
+  } catch (e) { msg.innerHTML = `<span style="color:var(--k-today)">${esc(e.message || e)}</span>`; toast(e.message || '导入失败'); }
+}
+function demoRows() {
+  const names = ['TAN MEI LING', 'AHMAD FAIZAL BIN RAHMAN', 'PRIYA A/P RAMASAMY', 'LIM WEI JIE', 'NURUL HUDA BINTI ISMAIL', 'WONG KAR SENG', 'CHONG SIEW LAN', 'RAJESH A/L KUMAR', 'LEE CHEE KEONG', 'SITI AMINAH BINTI YUSOF', 'NG BOON HUAT', 'GOH PEI SHAN'];
+  const offs = [0, 0, 1, 2, 3, -1, -3, 5, 8, 12, 20, 45], t = today(), pad = n => String(n).padStart(2, '0');
+  return names.map((n, i) => { const d = new Date(t); d.setDate(d.getDate() + offs[i]); return [n, `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${1972 + i * 3}`]; });
+}
+
+// ---------- send sheet ----------
+function openSheet(id, late, fromQueue) {
+  const c = CUST.find(x => x.id === id); if (!c) return;
+  if (!fromQueue) queue = null;
+  cur = { c, late: !!late && !!c.prev, lang: prefs.lang, theme: prefs.theme, shift: 0, edited: null, saved: false, opened: false };
+  $('#sheet').className = 'sheet k-' + kindOf(c, cur.late);
+  drawSheet(); $('#scrim').hidden = false; $('#sheet').hidden = false; $('#sheet').scrollTop = 0;
+}
+function startQueue() {
+  const Q = sendQueue(); if (!Q.length) { toast('这几天的祝福都发完了'); return; }
+  queue = { list: Q.map(x => ({ id: x.c.id, late: x.late })), i: 0 };
+  openSheet(queue.list[0].id, queue.list[0].late, true);
+}
+function nextInQueue() {
+  if (!queue) return closeSheet();
+  queue.i++;
+  if (queue.i >= queue.list.length) { queue = null; closeSheet(); celebrate(); toast('全部发完了！'); return; }
+  const n = queue.list[queue.i]; openSheet(n.id, n.late, true);
+}
+function closeSheet() { $('#scrim').hidden = true; $('#sheet').hidden = true; cur = null; queue = null; render(); }
+function currentText() { const ta = $('#msg'); return ta ? ta.value : (cur.edited ?? message(cur.c, cur.lang, cur.shift, cur.late)); }
+function drawSheet() {
+  const { c, late, lang, theme } = cur;
+  const o = late ? c.prev : c.next;
+  const sk = o ? c.id + '_' + o.yr : null, done = !!(sk && sent[sk]);
+  const phone = phones[c.id] || '', wa = waNumber(phone);
+  const msg = cur.edited ?? message(c, lang, cur.shift, late);
+  const age = c.y && o ? o.yr - c.y : null;
+  const qpos = queue ? `<span class="qpos">第 ${queue.i + 1} / ${queue.list.length} 位</span>` : '';
+  $('#sheet').innerHTML = `
+    <div class="sh-bar"><div class="wrap">${avatar(c)}<div class="t"><b>${esc(c.name)}</b><span>${o ? `${o.date.getMonth() + 1}月${o.date.getDate()}日 ${WD[o.date.getDay()]} · ${dayWord(o.diff)}生日` : '没有生日资料'}</span></div>${qpos}<button class="xbtn" id="shClose" aria-label="关闭">${ic('x')}</button></div></div>
+    <div class="wrap sh-body">
+      ${c.m ? `
+      <div class="facts"><span class="fact">${ic('cake')}${c.d}/${c.m}/${c.y}</span>${age ? `<span class="fact">${ic('gift')}${late ? '刚满' : '将满'} ${age} 岁</span>` : ''}<span class="fact">${ic(done ? 'check' : 'bell')}${done ? '已发送 ' + esc(sent[sk]) : '还没发送'}</span></div>
+      <div class="preview"><img id="cardImg" alt="给 ${esc(c.name)} 的生日卡"></div>
+      <div class="styles">${Object.entries(THEMES).map(([k, T]) => `<button class="sw ${theme === k ? 'on' : ''}" data-theme-pick="${k}"><i style="background:${T.swatch}"></i>${T.label}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="语言">${[['en', 'English'], ['ms', 'Melayu'], ['both', '双语']].map(([l, t]) => `<button data-lang="${l}" class="${lang === l ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="steps">
+        <div class="step ${cur.saved ? 'ok' : ''}"><span class="no">${cur.saved ? ic('check') : 1}</span><div>
+          <div class="lbl">${canShareFiles ? '一键分享卡片 + 祝福语（最快）' : '保存生日卡'}</div>
+          <div class="hint">${canShareFiles ? '选 WhatsApp → 选客户 → 发送。祝福语也会先复制好，没带上就直接贴上。' : (downloads || !window.claude) ? '存进手机相册或文件，等一下在 WhatsApp 附上。' : '长按上面的生日卡 → 保存图片。'}</div>
+          <div class="act" style="display:grid;gap:8px">${canShareFiles ? `<button class="btn wa" id="bShare">${ic('send')}分享到 WhatsApp</button>` : ''}${(downloads || !window.claude) ? `<button class="btn soft" id="bSave">${ic('download')}保存生日卡到手机</button>` : `<button class="btn soft" id="bSaved">${ic('hand')}我已经长按保存了</button>`}</div>
+        </div></div>
+        <div class="step ${cur.opened ? 'ok' : ''}"><span class="no">${cur.opened ? ic('check') : 2}</span><div>
+          <div class="lbl">打开 WhatsApp，祝福语已经填好</div>
+          <div class="hint">${wa ? `会直接打开和 ${esc(phone)} 的对话。` : '还没存这位客户的电话：打开后选择联系人就可以。'}</div>
+          <div class="act"><a class="btn wa" id="bWa" href="${waLink(wa, msg)}" target="_blank" rel="noopener">${ic('chat')}用 WhatsApp 发送</a></div>
+        </div></div>
+        <div class="step ${done ? 'ok' : ''}"><span class="no">${done ? ic('check') : 3}</span><div>
+          <div class="lbl">附上生日卡，按发送</div>
+          <div class="hint">在 WhatsApp 点 📎 → 选刚才保存的卡片。发好后回来按下面的按钮。</div>
+          <div class="act"><button class="btn ${done ? 'done' : 'primary'}" id="bSent">${ic('check')}${done ? '已发送（按两次可取消）' : (queue ? '我发好了，下一位' : '我发好了')}</button></div>
+        </div></div>
+      </div>
+      ${queue ? `<div class="qnav"><button class="btn soft" id="bSkip">${ic('next')}跳过这位</button><button class="btn soft" id="bStop">结束发送</button></div>` : ''}
+      <details class="edit"><summary>${ic('pen')}看 / 修改祝福语<span class="chev">${ic('down')}</span></summary>
+        <div class="inner">
+          <textarea id="msg" aria-label="祝福语，可修改">${esc(msg)}</textarea>
+          <div class="row2"><button class="btn soft" id="bCopy">${ic('copy')}复制</button><button class="btn soft" id="bWord" ${late ? 'aria-disabled="true"' : ''}>${ic('refresh')}换个说法</button></div>
+        </div></details>
+      <details class="edit" ${phone ? '' : ''}><summary>${ic('phone')}${phone ? '电话：' + esc(phone) : '存电话号码（下次直接打开对话）'}<span class="chev">${ic('down')}</span></summary>
+        <div class="inner">
+          <div class="phone"><input id="ph" type="tel" inputmode="tel" placeholder="例如 012-345 6789" value="${esc(phone)}" aria-label="电话号码"><button class="btn primary" id="bPh">保存</button></div>
+          <div class="small">${phone && !wa ? '这个号码格式看起来不对，请检查。' : '号码存在你自己的私人储存里，只有你看得到。'}</div>
+        </div></details>` : `<div class="none-card"><span class="ic c-coral">${ic('gift')}</span><div><b>没有生日资料</b><span>名单里没有这位客户的生日（可能是公司保单）。</span></div></div>`}
+    </div>`;
+  const img = $('#cardImg'); if (img) img.src = cardCanvas(c, lang, theme).toDataURL('image/png');
+  $('#shClose').onclick = closeSheet;
+  const keep = () => { const ta = $('#msg'); if (ta) cur.edited = ta.value; };
+  document.querySelectorAll('#sheet [data-lang]').forEach(b => b.onclick = () => { cur.lang = prefs.lang = b.dataset.lang; LS.set('cbl_prefs', prefs); cur.edited = null; cur.saved = false; drawSheet(); });
+  document.querySelectorAll('#sheet [data-theme-pick]').forEach(b => b.onclick = () => { keep(); cur.theme = prefs.theme = b.dataset.themePick; LS.set('cbl_prefs', prefs); cur.saved = false; drawSheet(); });
+  const ta = $('#msg');
+  if (ta) ta.oninput = () => { cur.edited = ta.value; $('#bWa').href = waLink(wa, ta.value); };
+  const bSave = $('#bSave'); if (bSave) bSave.onclick = async () => {
+    const cv = cardCanvas(c, cur.lang, cur.theme);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    const fname = `Birthday-${niceName(c.name).replace(/[^\w]+/g, '-')}.png`;
+    if (!downloads) { // regular browser: ordinary download
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000); cur.saved = true; keep(); drawSheet(); toast('生日卡已保存'); return;
+    }
+    try { await downloads.save({ filename: fname, data: blob }); cur.saved = true; keep(); drawSheet(); toast('生日卡已保存'); }
+    catch (e) { if (e && e.code === 'declined') toast('没有保存'); else { downloads = null; keep(); drawSheet(); toast('这里不能直接保存，请长按图片保存'); } }
+  };
+  const bShare = $('#bShare'); if (bShare) bShare.onclick = async () => {
+    const text = currentText();
+    try { await navigator.clipboard.writeText(text); } catch (e) {}
+    const blob = await new Promise(r => cardCanvas(c, cur.lang, cur.theme).toBlob(r, 'image/png'));
+    const file = new File([blob], `Birthday-${niceName(c.name).replace(/[^\w]+/g, '-')}.png`, { type: 'image/png' });
+    try { await navigator.share({ files: [file], text }); cur.saved = cur.opened = true; keep(); drawSheet(); toast('发好了就按「我发好了」'); }
+    catch (e) { if (e && e.name !== 'AbortError') toast('分享没有成功，请用下面的保存 + WhatsApp'); }
+  };
+  const bSaved = $('#bSaved'); if (bSaved) bSaved.onclick = () => { keep(); cur.saved = true; drawSheet(); };
+  const bWa = $('#bWa'); if (bWa) bWa.onclick = () => { keep(); cur.opened = true; setTimeout(drawSheet, 300); };
+  const bc = $('#bCopy'); if (bc) bc.onclick = async () => { try { await navigator.clipboard.writeText(ta.value); toast('祝福语已复制'); } catch (e) { ta.focus(); ta.select(); toast('文字已选好，请按“复制”'); } };
+  const bw = $('#bWord'); if (bw) bw.onclick = () => { if (cur.late) return; cur.shift++; cur.edited = null; drawSheet(); };
+  const bs = $('#bSent'); if (bs) bs.onclick = () => {
+    if (!sk) return;
+    if (sent[sk]) {
+      if (bs.dataset.confirm !== '1') { bs.dataset.confirm = '1'; bs.innerHTML = ic('x') + '再按一次取消“已发送”'; return; }
+      delete sent[sk]; persist(); keep(); drawSheet(); toast('已取消“已发送”'); return;
+    }
+    const d = new Date(); sent[sk] = `${d.getDate()}/${d.getMonth() + 1}`; persist(); celebrate();
+    if (queue) { toast(`${niceName(c.name)} ✓ 下一位`); setTimeout(nextInQueue, 650); }
+    else { keep(); drawSheet(); toast('已标记为已发送'); }
+  };
+  const bSkip = $('#bSkip'); if (bSkip) bSkip.onclick = nextInQueue;
+  const bStop = $('#bStop'); if (bStop) bStop.onclick = closeSheet;
+  const bp = $('#bPh'); if (bp) bp.onclick = () => { const v = $('#ph').value.trim(); if (v) phones[c.id] = v; else delete phones[c.id]; persist(); keep(); drawSheet(); toast(v ? (waNumber(v) ? '电话已保存' : '已保存，但号码格式看起来不对') : '电话已删除'); };
+}
+
+// ---------- settings ----------
+function openSettings() {
+  cur = null; queue = null;
+  const nSent = Object.keys(sent).length, nPh = Object.keys(phones).length;
+  $('#sheet').className = 'sheet k-month';
+  $('#sheet').innerHTML = `<div class="sh-bar"><div class="wrap"><span class="logo" style="background:var(--coral-soft);color:var(--coral)">${ic('sliders')}</span><div class="t"><b>设置</b></div><button class="xbtn" id="shClose" aria-label="关闭">${ic('x')}</button></div></div>
+    <div class="wrap sh-body">
+      <div class="steps"><div class="step"><span class="no">${ic('pen')}</span><div><div class="lbl">署名</div><div class="hint">出现在祝福语最后和生日卡下方。</div>
+        <div class="act phone"><input id="sSender" type="text" value="${esc(prefs.sender)}" aria-label="署名"><button class="btn primary" id="sSave">保存</button></div></div></div>
+      <div class="step ${cloudState === 'synced' ? 'ok' : ''}"><span class="no">${ic('cloud')}</span><div><div class="lbl">${cloudState === 'synced' ? '已存进你的私人储存' : cloudState === 'error' ? '储存暂时连不上，先存在这部手机' : '目前只存在这部手机'}</div>
+        <div class="hint">${nSent} 个“已发送”标记 · ${nPh} 个电话号码。${cloudState === 'synced' ? '用你的 claude.ai 账号登录，换手机也会在。只有你看得到。' : window.claude ? '登录 claude.ai 打开这个链接，就会自动存进你的私人储存。' : '只存在这部手机的浏览器里，清除浏览器资料后会不见。'}</div></div></div>
+      <div class="step"><span class="no">${ic('gift')}</span><div><div class="lbl">客户资料${prefs.demo ? '（示范资料）' : ''}</div><div class="hint">${SOURCE}，共 ${CUST.length} 位客户。${EMBEDDED ? '名单有更新时，把新的 PDF 或 Excel 交给 Claude。' : '名单有更新时，在这里重新导入 Excel。'}</div>
+        ${EMBEDDED ? '' : `<div class="act row2" style="margin-top:9px"><label class="btn primary" for="sImport">${ic('download')}${prefs.demo ? '导入我的 Excel' : '更新名单'}</label><input type="file" id="sImport" accept=".xlsx,.xls,.csv" hidden><button class="btn soft" id="sWipe">${ic('x')}删除资料</button></div>`}</div></div></div>
+    </div>`;
+  $('#shClose').onclick = closeSheet;
+  $('#sSave').onclick = () => { prefs.sender = $('#sSender').value.trim(); for (const k in thumbs) delete thumbs[k]; persist(); toast('署名已保存'); };
+  const si = $('#sImport'); if (si) si.onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; await importFile(f, null); closeSheet(); };
+  const sw = $('#sWipe'); if (sw) sw.onclick = () => {
+    if (sw.dataset.confirm !== '1') { sw.dataset.confirm = '1'; sw.innerHTML = ic('x') + '再按一次删除'; return; }
+    for (const k in sent) delete sent[k]; for (const k in phones) delete phones[k];
+    try { localStorage.removeItem('cbl_customers'); } catch (e) {}
+    prefs.demo = false; persist(); setCustomers([]); closeSheet(); toast('这部手机里的客户资料已删除');
+  };
+  $('#scrim').hidden = false; $('#sheet').hidden = false;
+}
+
+// ---------- little celebration when a wish is sent ----------
+function celebrate() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = $('#burst'); cv.hidden = false; const W = cv.width = innerWidth, H = cv.height = innerHeight, x = cv.getContext('2d');
+  const cols = ['#ff4d6d', '#ffd166', '#3a86ff', '#06b6a4', '#8a5cf6'];
+  const ps = Array.from({ length: 90 }, () => ({ x: W / 2, y: H * .55, vx: (Math.random() - .5) * 13, vy: -Math.random() * 15 - 5, r: Math.random() * Math.PI, c: cols[Math.floor(Math.random() * cols.length)], s: 5 + Math.random() * 6 }));
+  let f = 0; (function step() { x.clearRect(0, 0, W, H); for (const p of ps) { p.x += p.vx; p.y += p.vy; p.vy += .45; p.r += .2; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.s / 2, -p.s, p.s, p.s * 2); x.restore(); } if (++f < 70) requestAnimationFrame(step); else { x.clearRect(0, 0, W, H); cv.hidden = true; } })();
+}
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2400); }
+
+// ---------- events ----------
+$('#q').addEventListener('input', () => { showAll.q = false; render(); });
+$('#qClear').onclick = () => { $('#q').value = ''; render(); $('#q').focus(); };
+$('#btnSet').onclick = openSettings;
+$('#cta').onclick = startQueue;
+$('#heroTiles').addEventListener('click', e => {
+  const t = e.target.closest('[data-jump]'); if (!t) return;
+  if ($('#q').value) { $('#q').value = ''; render(); }
+  const sec = document.getElementById('sec-' + t.dataset.jump) || document.getElementById('sec-today');
+  const top = sec.getBoundingClientRect().top + scrollY - $('#searchbar').offsetHeight - 8;
+  scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
+$('#scrim').onclick = closeSheet;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+$('#view').addEventListener('click', e => {
+  const it = e.target.closest('[data-id]'); if (it) return openSheet(it.dataset.id, it.dataset.late === '1');
+  const mo = e.target.closest('[data-month]'); if (mo) { month = +mo.dataset.month; render(); return; }
+  const mr = e.target.closest('[data-more]'); if (mr) { showAll[mr.dataset.more] = true; render(); }
+});
+const sb = $('#searchbar');
+addEventListener('scroll', () => sb.classList.toggle('stuck', sb.getBoundingClientRect().top <= (parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0) + 1), { passive: true });
+render();
+if (document.fonts) Promise.all(['80px "Great Vibes"', '700 80px "Playfair Display"', '500 40px Inter', '600 40px Inter', '600 20px Fredoka'].map(f => document.fonts.load(f).catch(() => {})))
+  .then(() => { for (const k in thumbs) delete thumbs[k]; render(); if (cur) drawSheet(); });
+</script>
+
+</body>
+</html>
