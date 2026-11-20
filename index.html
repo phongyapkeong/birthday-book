@@ -209,6 +209,10 @@ main .wrap{padding-block:12px 44px;display:grid;grid-template-columns:minmax(0,1
 .legend{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;font-size:12px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--k);margin-right:5px;vertical-align:-1px}
 
+.demo-bar{display:grid;gap:12px;background:var(--k-soon-soft);border:2px dashed var(--k-soon);border-radius:20px;padding:14px}
+.demo-bar b{display:flex;align-items:center;gap:8px;font:700 16px var(--display);color:var(--k-soon)}
+.demo-bar span{display:block;font-size:13.5px;color:var(--ink);margin-top:4px}
+
 /* ---------- send sheet ---------- */
 .sheet .sh-bar{background:var(--ks);border-bottom:3px solid var(--k)}
 .sheet .btn.primary{background:var(--k);border-color:var(--k)}
@@ -583,7 +587,7 @@ function render() {
   if (!CUST.length) return renderWelcome();
   const t = today(), G = groups(), Q = sendQueue();
   $('#heroDate').textContent = `${t.getFullYear()}年${t.getMonth() + 1}月${t.getDate()}日 · ${WD[t.getDay()]}`;
-  $('#heroTitle').textContent = Q.length ? `有 ${Q.length} 份生日祝福等你发送` : '这几天的祝福都发完了';
+  $('#heroTitle').textContent = (!EMBEDDED && prefs.demo ? '【示范资料】' : '') + (Q.length ? `有 ${Q.length} 份生日祝福等你发送` : '这几天的祝福都发完了');
   $('#heroTiles').innerHTML = [['today', G.todayL.length, '今天生日', 'cake'], ['soon', G.soon.length, '1–3 天内', 'bell'], ['late', G.missed.length, '错过未发', 'history']]
     .map(([k, n, l, i]) => `<button class="htile k-${k}" data-jump="${k}"><span class="hi">${ic(i)}</span><b>${n}</b><span class="hl">${l}</span></button>`).join('');
   const cta = $('#cta'); cta.hidden = false;
@@ -598,6 +602,8 @@ function render() {
   const counts = MON.map((_, i) => CUST.filter(c => c.m === i + 1).length);
   const inMonth = CUST.filter(c => c.m === m).sort((a, b) => a.d - b.d || a.name.localeCompare(b.name));
   V.innerHTML = `
+    ${!EMBEDDED && prefs.demo ? `<div class="demo-bar"><div><b>${ic('bell')}你现在看到的是示范资料</b><span>这 ${CUST.length} 位客户是假的，只是让你先看看怎么用。导入你的 Excel，就会换成你自己的客户。</span></div>
+      <label class="btn primary" for="dImport">${ic('download')}导入我的 Excel</label><input type="file" id="dImport" accept=".xlsx,.xls,.csv" hidden></div>` : ''}
     ${block('today', 'cake', '今天生日', G.todayL.length, G.todayL.length ? `<div class="tgrid">${G.todayL.map(tcHTML).join('')}</div>` : `<div class="empty">${ic('gift')}今天没有客户生日</div>`)}
     ${block('soon', 'bell', '即将生日 · 1–3 天内', G.soon.length, listHTML('soon', G.soon, false, 10))}
     ${G.missed.length ? block('late', 'history', '错过未发 · 最近 7 天', G.missed.length, listHTML('missed', G.missed, true, 5)) : ''}
@@ -852,6 +858,10 @@ $('#view').addEventListener('click', e => {
   const it = e.target.closest('[data-id]'); if (it) return openSheet(it.dataset.id, it.dataset.late === '1');
   const mo = e.target.closest('[data-month]'); if (mo) { month = +mo.dataset.month; render(); return; }
   const mr = e.target.closest('[data-more]'); if (mr) { showAll[mr.dataset.more] = true; render(); }
+});
+$('#view').addEventListener('change', e => {
+  if (e.target.id !== 'dImport') return;
+  const f = e.target.files[0]; e.target.value = ''; if (f) importFile(f, null);
 });
 const sb = $('#searchbar');
 addEventListener('scroll', () => sb.classList.toggle('stuck', sb.getBoundingClientRect().top <= (parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0) + 1), { passive: true });
