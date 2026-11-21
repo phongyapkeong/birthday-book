@@ -1,0 +1,32 @@
+{
+  "name": "客户生日簿",
+  "short_name": "客户生日簿",
+  "description": "客户生日提醒，一键发送祝福到 WhatsApp",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "zh",
+  "background_color": "#2e1f6b",
+  "theme_color": "#2e1f6b",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
